@@ -1,0 +1,69 @@
+absl-py==2.5.0
+affine==2.4.0
+anyio==4.14.2
+attrs==26.1.0
+brotlicffi @ file:///opt/miniconda3/conda-bld/brotlicffi_1764961161728/work
+certifi @ file:///Users/ec2-user/croot/certifi_1782214923663/work/certifi
+cffi @ file:///Users/ec2-user/croot/cffi_1784189442572/work
+charset-normalizer @ file:///Users/ec2-user/croot/charset-normalizer_1782917470852/work
+click==8.4.2
+click-plugins==1.1.1.2
+cligj==0.7.2
+contourpy==1.3.2
+cycler==0.12.1
+exceptiongroup==1.3.1
+filelock @ file:///Users/ec2-user/croot/filelock_1781703329174/work
+fonttools==4.63.0
+fsspec==2026.6.0
+gmpy2 @ file:///opt/miniconda3/conda-bld/gmpy2_1764747893574/work
+grpcio==1.82.1
+h11==0.16.0
+hf-xet==1.5.1
+httpcore==1.0.9
+httpx==0.28.1
+huggingface_hub==1.23.0
+idna @ file:///Users/ec2-user/croot/idna_1780561399149/work
+imagecodecs==2025.3.30
+ImageIO==2.37.4
+Jinja2 @ file:///private/var/folders/k1/30mswbxs7r1g6zwn8y4fyt500000gp/T/abs_2cnn4kenrm/croot/jinja2_1741710859444/work
+joblib==1.5.3
+kiwisolver==1.5.0
+lazy-loader==0.5
+Markdown==3.10.2
+MarkupSafe @ file:///Users/ec2-user/croot/markupsafe_1782390861615/work
+matplotlib==3.10.9
+mpmath @ file:///private/var/folders/k1/30mswbxs7r1g6zwn8y4fyt500000gp/T/abs_17iu6a8a3m/croot/mpmath_1690848269369/work
+networkx @ file:///private/var/folders/k1/30mswbxs7r1g6zwn8y4fyt500000gp/T/abs_e6lt1dcyid/croot/networkx_1737040482044/work
+numpy @ file:///Users/ec2-user/croot/numpy_and_numpy_base_1776190111216/work/dist/numpy-2.2.5-cp310-cp310-macosx_12_0_arm64.whl#sha256=326d9d5013597eccd52c88298745e8d735795390dd35c890e370f499d772402d
+opencv-python==5.0.0.93
+packaging==26.0
+pandas==2.3.3
+pillow @ file:///Users/ec2-user/croot/pillow_1783978872369/work
+protobuf==7.35.1
+pycparser @ file:///Users/ec2-user/croot/pycparser_1774959675136/work
+pyparsing==3.3.2
+PySocks @ file:///opt/miniconda3/conda-bld/pysocks_1761753011241/work
+python-dateutil==2.9.0.post0
+pytz==2026.2
+PyYAML @ file:///opt/miniconda3/conda-bld/pyyaml_1763465492983/work
+rasterio==1.4.1
+requests @ file:///Users/ec2-user/croot/requests_1780348925134/work
+safetensors==0.8.0
+scikit-image==0.25.2
+scikit-learn==1.7.2
+scipy==1.15.3
+six==1.17.0
+sympy==1.14.0
+tensorboard==2.21.0
+tensorboard-data-server==0.7.2
+threadpoolctl==3.6.0
+tifffile==2025.5.10
+timm==0.3.2
+torch==2.11.0
+torchaudio==2.11.0
+torchvision==0.26.0
+tqdm==4.68.4
+typing_extensions @ file:///Users/ec2-user/croot/typing_extensions_1784101001783/work
+tzdata==2026.3
+urllib3 @ file:///Users/ec2-user/croot/urllib3_1778536191500/work
+Werkzeug==3.1.8
