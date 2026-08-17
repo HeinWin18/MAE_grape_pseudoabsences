@@ -34,8 +34,6 @@ sys.modules["torch._six"] = torch_six
 
 import timm
 import torch.backends.cudnn as cudnn
-
-import torch.backends.cudnn as cudnn
 import torchvision.datasets as datasets
 import torchvision.transforms as transforms
 from torch.utils.tensorboard import SummaryWriter
