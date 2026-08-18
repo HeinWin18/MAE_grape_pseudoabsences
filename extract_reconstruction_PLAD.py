@@ -8,6 +8,7 @@ import hashlib
 # Compatibility fix for timm==0.3.2 with modern PyTorch
 import sys
 import types
+import collections.abc
 
 torch_six = types.ModuleType("torch._six")
 torch_six.container_abcs = collections.abc
