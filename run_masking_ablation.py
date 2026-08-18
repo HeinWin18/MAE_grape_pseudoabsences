@@ -23,7 +23,9 @@ BASE_OUTPUT_DIR = "/content/drive/MyDrive/MAE_grape_pseudoabsences"
 # TRAINING SETTINGS
 # ============================================================
 
-BATCH_SIZE = 64
+BATCH_SIZE = 16
+ACCUM_ITER = 4
+
 EPOCHS = 100
 MODEL = "mae_vit_base_patch16"
 
@@ -32,9 +34,8 @@ PATCH_SIZE = 2
 
 BLR = 1.5e-4
 WEIGHT_DECAY = 0.05
-WARMUP_EPOCHS = 40
 
-NUM_WORKERS = 4
+NUM_WORKERS = 0
 SEED = 0
 
 
