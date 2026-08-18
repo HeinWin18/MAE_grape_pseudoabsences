@@ -7,7 +7,7 @@ import sys
 # MASKING RATIO ABLATION
 # ============================================================
 
-MASKING_RATIOS = [0.25, 0.5, 0.85]
+MASKING_RATIOS = [0.0, 0.5, 0.85]
 
 
 # ============================================================
@@ -20,7 +20,7 @@ BASE_OUTPUT_DIR = "/content/drive/MyDrive/MAE_grape_pseudoabsences"
 
 
 # ============================================================
-# TRAINING SETTINGS
+# FIXED TRAINING SETTINGS
 # ============================================================
 
 BATCH_SIZE = 16
@@ -48,10 +48,6 @@ for mask_ratio in MASKING_RATIOS:
 
     ratio_name = f"{mask_ratio:.2f}"
 
-    # --------------------------------------------------------
-    # Separate output directory for each experiment
-    # --------------------------------------------------------
-
     output_dir = os.path.join(
         BASE_OUTPUT_DIR,
         f"outputs_32x32_1600ep_mask{ratio_name}"
@@ -67,14 +63,14 @@ for mask_ratio in MASKING_RATIOS:
 
     print("\n")
     print("=" * 80)
-    print(f"STARTING MASKING RATIO ABLATION")
+    print("STARTING MASKING RATIO ABLATION")
     print(f"Masking Ratio: {ratio_name}")
     print(f"Output Directory: {output_dir}")
     print("=" * 80)
 
-    # --------------------------------------------------------
-    # Build training command
-    # --------------------------------------------------------
+    # ========================================================
+    # CALL main_pretrain.py
+    # ========================================================
 
     command = [
         sys.executable,
@@ -82,6 +78,9 @@ for mask_ratio in MASKING_RATIOS:
 
         "--batch_size",
         str(BATCH_SIZE),
+
+        "--accum_iter",
+        str(ACCUM_ITER),
 
         "--model",
         MODEL,
@@ -127,15 +126,7 @@ for mask_ratio in MASKING_RATIOS:
     print(" ".join(command))
     print("\n")
 
-    # --------------------------------------------------------
-    # Run training
-    # --------------------------------------------------------
-
     result = subprocess.run(command)
-
-    # --------------------------------------------------------
-    # Stop if training fails
-    # --------------------------------------------------------
 
     if result.returncode != 0:
 
@@ -145,10 +136,6 @@ for mask_ratio in MASKING_RATIOS:
         print("=" * 80)
 
         sys.exit(result.returncode)
-
-    # --------------------------------------------------------
-    # Completed
-    # --------------------------------------------------------
 
     print("\n")
     print("=" * 80)
