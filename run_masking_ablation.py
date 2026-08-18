@@ -24,7 +24,7 @@ BASE_OUTPUT_DIR = "/content/drive/MyDrive/MAE_grape_pseudoabsences"
 # ============================================================
 
 BATCH_SIZE = 64
-EPOCHS = 1600
+EPOCHS = 100
 MODEL = "mae_vit_base_patch16"
 
 IMG_SIZE = 32
