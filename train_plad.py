@@ -60,7 +60,7 @@ def L(pred_normal, pred_pert, alpha, beta) -> Tensor:
 
 use_pretrained_classifier = False
 BATCH_SIZE = 64
-EPOCHS = 1
+EPOCHS = 50
 lambd = 0.01
 
 
