@@ -170,13 +170,34 @@ def train(data_folder, out_dir=None):
 
         print(f"EPOCH {epoch+1}: vae_loss={ep_vae/len(loader):.4f}")
 
+        # Save checkpoint every 200 epochs
+        if out_dir is not None and (epoch + 1) % 200 == 0:
+            os.makedirs(out_dir, exist_ok=True)
+
+            checkpoint_path = os.path.join(
+                out_dir,
+                f"anovaegan_epoch_{epoch+1}.pth"
+            )
+
+            torch.save({
+                "encoder": enc.state_dict(),
+                "decoder": dec.state_dict(),
+                "discriminator": D.state_dict(),
+                "opt_vae": opt_vae.state_dict(),
+                "opt_g": opt_g.state_dict(),
+                "opt_d": opt_d.state_dict(),
+                "epoch": epoch + 1,
+            }, checkpoint_path)
+
+            print(f"checkpoint saved -> {checkpoint_path}")
+
     if out_dir is not None:
         os.makedirs(out_dir, exist_ok=True)
         path = os.path.join(out_dir, "anovaegan.pth")
         torch.save({"encoder": enc.state_dict(), "decoder": dec.state_dict()}, path)
         print(f"saved -> {path}")
-    return enc, dec
 
+    return enc, dec
 
 if __name__ == "__main__":
     ap = argparse.ArgumentParser()
