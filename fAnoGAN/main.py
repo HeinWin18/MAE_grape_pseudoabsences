@@ -217,7 +217,7 @@ def analyze_patch_anomalies_detailed(original, generated, patch_scores, discrimi
     print("=" * 60 + "\n")
 
 #Parnian's original run function (before refactoring for Optuna and better error handling)
-# def run(args):
+# 
 #     """
 #     Main execution function.
 #     """
@@ -424,82 +424,177 @@ from tensorflow.keras.models import load_model
 #So even in test mode, test_img was immediately overwritten with an empty array. When the test block ran, it saw an empty test_img and silently returned without doing anything.
 #The fix: We split the loading by mode. Train mode loads training data. Test mode loads test data. They no longer overwrite each other.
 def run(args):
-    # ===== SETUP =====
+
+    # ============================================================
+    # SETUP
+    # ============================================================
+
     if args.mode == 'train':
-        X_train, valid_masks = load.load_raster_data(args.datapath, args.testpath, args.imgsize, args.mode)
-        #ADDED to fix encoder training issue
+
+        X_train, valid_masks = load.load_raster_data(
+            args.datapath,
+            args.testpath,
+            args.imgsize,
+            args.mode
+        )
+
         X_train = np.clip(X_train, -3, 3) / 3.0
+
         test_img, test_mask = np.array([]), np.array([])
+
     elif args.mode == 'test':
-        all_test, all_masks = load.load_raster_data(args.datapath, args.testpath, args.imgsize, args.mode)
-        test_img = all_test[0]   # (H, W, C) — first patch
-        test_mask = all_masks[0] # (H, W)
+
+        all_test, all_masks = load.load_raster_data(
+            args.datapath,
+            args.testpath,
+            args.imgsize,
+            args.mode
+        )
+
+        test_img = all_test[0]
+        test_mask = all_masks[0]
+
         X_train, valid_masks = np.array([]), np.array([])
+
+
+    # ============================================================
+    # CREATE DCGAN
+    # ============================================================
 
     DCGAN = dcgan.DCGAN(args)
 
-# ===== TRAINING =====
+
+    # ============================================================
+    # TRAIN GAN
+    # ============================================================
+
     if args.mode == 'train':
+
         n_samples = X_train.shape[0]
         steps_per_epoch = max(1, n_samples // args.batchsize)
+
         d_losses, g_losses = [], []
+
         train_start = time.time()
         timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
 
         for epoch in range(args.epoch):
+
             epoch_start = time.time()
-            print(f"\nEpoch {epoch + 1}/{args.epoch}")
+
+            print(
+                f"\nEpoch {epoch + 1}/{args.epoch}"
+            )
 
             np.random.seed(None)
+
             indices = np.random.permutation(n_samples)
+
             X_shuffled = X_train[indices]
             masks_shuffled = valid_masks[indices]
 
             epoch_d_losses, epoch_g_losses = [], []
-            pbar = tqdm(range(steps_per_epoch), desc=f"Epoch {epoch + 1}")
+
+            pbar = tqdm(
+                range(steps_per_epoch),
+                desc=f"Epoch {epoch + 1}"
+            )
 
             for step in pbar:
+
                 batch_start = step * args.batchsize
-                batch_end = min(batch_start + args.batchsize, n_samples)
-                
+                batch_end = min(
+                    batch_start + args.batchsize,
+                    n_samples
+                )
+
                 if batch_end - batch_start < args.batchsize // 2:
                     continue
-                    
-                x_batch = X_shuffled[batch_start:batch_end]
-                mask_batch = masks_shuffled[batch_start:batch_end]
-                
-                d_loss, g_loss = DCGAN.train(x_batch, mask_batch, l1_weight=0.5, g_steps=args.g_steps)
-                epoch_d_losses.append(float(d_loss))
-                epoch_g_losses.append(float(g_loss))
-                
-                pbar.set_postfix({'D': f'{d_loss:.4f}', 'G': f'{g_loss:.4f}'})
 
-            avg_d, avg_g = np.mean(epoch_d_losses), np.mean(epoch_g_losses)
+                x_batch = X_shuffled[
+                    batch_start:batch_end
+                ]
+
+                mask_batch = masks_shuffled[
+                    batch_start:batch_end
+                ]
+
+                d_loss, g_loss = DCGAN.train(
+                    x_batch,
+                    mask_batch,
+                    l1_weight=0.5,
+                    g_steps=args.g_steps
+                )
+
+                epoch_d_losses.append(
+                    float(d_loss)
+                )
+
+                epoch_g_losses.append(
+                    float(g_loss)
+                )
+
+                pbar.set_postfix({
+                    'D': f'{d_loss:.4f}',
+                    'G': f'{g_loss:.4f}'
+                })
+
+            avg_d = np.mean(epoch_d_losses)
+            avg_g = np.mean(epoch_g_losses)
+
             d_losses.extend(epoch_d_losses)
             g_losses.extend(epoch_g_losses)
-            
-            mlflow.log_metric("g_loss", avg_g, step=epoch)
-            mlflow.log_metric("d_loss", avg_d, step=epoch)
+
+            mlflow.log_metric(
+                "g_loss",
+                avg_g,
+                step=epoch
+            )
+
+            mlflow.log_metric(
+                "d_loss",
+                avg_d,
+                step=epoch
+            )
 
             epoch_time = time.time() - epoch_start
-            remaining = epoch_time * (args.epoch - epoch - 1)
-            print(f"Epoch {epoch + 1} complete - Avg D: {avg_d:.4f}, Avg G: {avg_g:.4f} | Time: {epoch_time:.1f}s | ETA: {remaining/60:.1f}min")
-            mlflow.log_metric("epoch_time", epoch_time, step=epoch)
 
-            #if (epoch + 1) % 10 == 0 or (epoch + 1) == args.epoch:
-             #   os.makedirs('./saved_model/', exist_ok=True)
-             #   DCGAN.g.save_weights(f'./saved_model/generator_{timestamp}.weights.h5')
-             #   DCGAN.d.save_weights(f'./saved_model/discriminator_{timestamp}.weights.h5')
-            if (epoch + 1) % 10 == 0 or (epoch + 1) == args.epoch:
-                os.makedirs(args.output_dir, exist_ok=True)
-            
+            remaining = (
+                epoch_time *
+                (args.epoch - epoch - 1)
+            )
+
+            print(
+                f"Epoch {epoch + 1} complete - "
+                f"Avg D: {avg_d:.4f}, "
+                f"Avg G: {avg_g:.4f} | "
+                f"Time: {epoch_time:.1f}s | "
+                f"ETA: {remaining/60:.1f}min"
+            )
+
+            mlflow.log_metric(
+                "epoch_time",
+                epoch_time,
+                step=epoch
+            )
+
+            if (
+                (epoch + 1) % 10 == 0
+                or (epoch + 1) == args.epoch
+            ):
+
+                os.makedirs(
+                    args.output_dir,
+                    exist_ok=True
+                )
+
                 DCGAN.g.save_weights(
                     os.path.join(
                         args.output_dir,
                         f'generator_{timestamp}.weights.h5'
                     )
                 )
-            
+
                 DCGAN.d.save_weights(
                     os.path.join(
                         args.output_dir,
@@ -508,8 +603,16 @@ def run(args):
                 )
 
         total_time = time.time() - train_start
-        mlflow.log_metric("total_train_time_sec", total_time)
-        mlflow.log_metric("avg_epoch_time_sec", total_time / args.epoch)
+
+        mlflow.log_metric(
+            "total_train_time_sec",
+            total_time
+        )
+
+        mlflow.log_metric(
+            "avg_epoch_time_sec",
+            total_time / args.epoch
+        )
 
         DCGAN.g.save(
             os.path.join(
@@ -517,141 +620,252 @@ def run(args):
                 f'generator{timestamp}.h5'
             )
         )
-        
+
         DCGAN.d.save(
             os.path.join(
                 args.output_dir,
                 f'discriminator{timestamp}.h5'
             )
         )
-        
-        return float(tf.reduce_mean(g_losses[-steps_per_epoch:]))
 
-    # ===== TESTING =====
+        return float(
+            tf.reduce_mean(
+                g_losses[-steps_per_epoch:]
+            )
+        )
+
+
+    # ============================================================
+    # TEST
+    # ============================================================
+
     elif args.mode == 'test':
+
         if test_img is None or len(test_img.shape) == 0:
             return
 
-        g = load_model('/Users/justin/Desktop/Rast-AnoGAN-onAlmond/saved_model/corn/generator_20260625_080804.weights.h5', custom_objects={'mse': tf.keras.losses.MeanSquaredError()})
-        d = load_model('/Users/justin/Desktop/Rast-AnoGAN-onAlmond/saved_model/corn/discriminator_20260625_080804.weights.h5', custom_objects={'mse': tf.keras.losses.MeanSquaredError()})
-        
-        score, patch_scores, query, pred, diff = anomaly_detection(test_img, test_mask, args, g=g, d=d)
-        Playground.illustrate(query, pred, diff, base="outputs/")
+        g = load_model(
+            '/Users/justin/Desktop/Rast-AnoGAN-onAlmond/'
+            'saved_model/corn/'
+            'generator_20260625_080804.weights.h5',
+            custom_objects={
+                'mse':
+                tf.keras.losses.MeanSquaredError()
+            }
+        )
 
-        if getattr(args, 'detailed_analysis', False):
-            analyze_patch_anomalies_detailed(query, pred, patch_scores, DCGAN.d, output_dir='outputs/detailed_analysis')
+        d = load_model(
+            '/Users/justin/Desktop/Rast-AnoGAN-onAlmond/'
+            'saved_model/corn/'
+            'discriminator_20260625_080804.weights.h5',
+            custom_objects={
+                'mse':
+                tf.keras.losses.MeanSquaredError()
+            }
+        )
 
-        # ===== TRAIN ENCODER =====
-        elif args.mode == 'train_encoder':
-            if not args.datapath:
-                raise ValueError(
-                    "--datapath is required for encoder training"
-                )
-        
-            if not args.generator_path:
-                raise ValueError(
-                    "--generator_path is required for encoder training"
-                )
-        
-            if not args.discriminator_path:
-                raise ValueError(
-                    "--discriminator_path is required for encoder training"
-                )
-        
-            if not os.path.exists(args.generator_path):
-                raise FileNotFoundError(
-                    f"Generator not found: {args.generator_path}"
-                )
-        
-            if not os.path.exists(args.discriminator_path):
-                raise FileNotFoundError(
-                    f"Discriminator not found: {args.discriminator_path}"
-                )
-            print("\n" + "=" * 60)
-            print("TRAINING f-AnoGAN ENCODER")
-            print("=" * 60)
-        
-            # Load training data
-            X_train, valid_masks = load.load_raster_data(
-                args.datapath,
-                args.testpath,
-                args.imgsize,
-                'train'
-            )
-        
-            print(f"Training data shape: {X_train.shape}")
-        
-            # Normalize exactly as used during training
-            X_train = np.clip(X_train, -3, 3) / 3.0
-        
-            # ---------------------------------------------------------
-            # Load already-trained Generator
-            # ---------------------------------------------------------
-            print(f"\nLoading generator:")
-            print(args.generator_path)
-        
-            g = load_model(
-                args.generator_path,
-                custom_objects={
-                    'mse': tf.keras.losses.MeanSquaredError()
-                }
-            )
-        
-            # ---------------------------------------------------------
-            # Load already-trained Discriminator
-            # ---------------------------------------------------------
-            print(f"\nLoading discriminator:")
-            print(args.discriminator_path)
-        
-            d = load_model(
-                args.discriminator_path,
-                custom_objects={
-                    'mse': tf.keras.losses.MeanSquaredError()
-                }
-            )
-        
-            print("\nLoaded existing GAN weights.")
-            print("Skipping GAN training.")
-        
-            # ---------------------------------------------------------
-            # Train encoder
-            # ---------------------------------------------------------
-            print("\nStarting encoder training...")
-        
-            encoder = model.train_encoder(
-                args,
-                g,
-                d,
-                X_train,
-                valid_masks,
-                epochs=args.encoder_epochs,
-                save_path=args.output_dir
-            )
-        
-            print("\nEncoder training complete.")
-            print(f"Encoder saved in: {args.output_dir}")
+        score, patch_scores, query, pred, diff = anomaly_detection(
+            test_img,
+            test_mask,
+            args,
+            g=g,
+            d=d
+        )
 
-     # ===== TRAIN unmasked ENCODER =====
+        Playground.illustrate(
+            query,
+            pred,
+            diff,
+            base="outputs/"
+        )
+
+        if getattr(
+            args,
+            'detailed_analysis',
+            False
+        ):
+
+            analyze_patch_anomalies_detailed(
+                query,
+                pred,
+                patch_scores,
+                DCGAN.d,
+                output_dir='outputs/detailed_analysis'
+            )
+
+
+    # ============================================================
+    # TRAIN ENCODER
+    # ============================================================
+
+    elif args.mode == 'train_encoder':
+
+        print("\n" + "=" * 60)
+        print("TRAINING f-AnoGAN ENCODER")
+        print("=" * 60)
+
+        print("\nData path:")
+        print(args.datapath)
+
+        print("\nGenerator:")
+        print(args.generator_path)
+
+        print("\nDiscriminator:")
+        print(args.discriminator_path)
+
+        print("\nEncoder epochs:")
+        print(args.encoder_epochs)
+
+        # --------------------------------------------------------
+        # Load training data
+        # --------------------------------------------------------
+
+        X_train, valid_masks = load.load_raster_data(
+            args.datapath,
+            args.testpath,
+            args.imgsize,
+            'train'
+        )
+
+        print(
+            f"\nTraining data shape: "
+            f"{X_train.shape}"
+        )
+
+        # Same normalization used previously
+        X_train = np.clip(
+            X_train,
+            -3,
+            3
+        ) / 3.0
+
+        # --------------------------------------------------------
+        # Load pretrained generator
+        # --------------------------------------------------------
+
+        print("\nLoading pretrained generator...")
+
+        g = load_model(
+            args.generator_path,
+            custom_objects={
+                'mse':
+                tf.keras.losses.MeanSquaredError()
+            }
+        )
+
+        print("Generator loaded successfully.")
+
+        # --------------------------------------------------------
+        # Load pretrained discriminator
+        # --------------------------------------------------------
+
+        print("\nLoading pretrained discriminator...")
+
+        d = load_model(
+            args.discriminator_path,
+            custom_objects={
+                'mse':
+                tf.keras.losses.MeanSquaredError()
+            }
+        )
+
+        print("Discriminator loaded successfully.")
+
+        print("\nLoaded existing GAN weights.")
+        print("Skipping GAN training.")
+
+        # --------------------------------------------------------
+        # Train encoder
+        # --------------------------------------------------------
+
+        print(
+            f"\nStarting encoder training "
+            f"for {args.encoder_epochs} epochs..."
+        )
+
+        os.makedirs(
+            args.output_dir,
+            exist_ok=True
+        )
+
+        encoder = model.train_encoder(
+            args,
+            g,
+            d,
+            X_train,
+            valid_masks,
+            epochs=args.encoder_epochs,
+            save_path=args.output_dir
+        )
+
+        print(
+            "\nEncoder training complete."
+        )
+
+        print(
+            f"Encoder saved in: "
+            f"{args.output_dir}"
+        )
+
+
+    # ============================================================
+    # TRAIN UNMASKED ENCODER
+    # ============================================================
+
     elif args.mode == 'train_encoder_unmasked':
-        X_train, valid_masks = load.load_raster_data(args.datapath, args.testpath, args.imgsize, 'train')
 
-        #Normlization -- to fix encoder training issue
-        X_train = np.clip(X_train, -3, 3) / 3.0
-        # Load already-trained GAN weights
-        g = load_model('/Users/justin/Desktop/Rast-AnoGAN-onAlmond/saved_model/corn/generator20260625_080804.h5',
-                    custom_objects={'mse': tf.keras.losses.MeanSquaredError()})
-        d = load_model('/Users/justin/Desktop/Rast-AnoGAN-onAlmond/saved_model/corn/discriminator20260625_080804.h5',
-                    custom_objects={'mse': tf.keras.losses.MeanSquaredError()})
+        X_train, valid_masks = load.load_raster_data(
+            args.datapath,
+            args.testpath,
+            args.imgsize,
+            'train'
+        )
 
-        print("Loaded existing GAN weights — skipping GAN training.")
+        X_train = np.clip(
+            X_train,
+            -3,
+            3
+        ) / 3.0
+
+        g = load_model(
+            '/Users/justin/Desktop/Rast-AnoGAN-onAlmond/'
+            'saved_model/corn/'
+            'generator20260625_080804.h5',
+            custom_objects={
+                'mse':
+                tf.keras.losses.MeanSquaredError()
+            }
+        )
+
+        d = load_model(
+            '/Users/justin/Desktop/Rast-AnoGAN-onAlmond/'
+            'saved_model/corn/'
+            'discriminator20260625_080804.h5',
+            custom_objects={
+                'mse':
+                tf.keras.losses.MeanSquaredError()
+            }
+        )
+
+        print(
+            "Loaded existing GAN weights — "
+            "skipping GAN training."
+        )
 
         encoder = model.train_encoder_new_loss(
-            args, g, d, X_train, valid_masks,
+            args,
+            g,
+            d,
+            X_train,
+            valid_masks,
             epochs=500,
             save_path='./saved_model/'
         )
-        print("Encoder training complete.")
 
+        print(
+            "Encoder training complete."
+        )
+        
 def validate_args(args):
     """
     Validate command line arguments.
