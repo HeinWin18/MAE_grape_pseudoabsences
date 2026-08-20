@@ -541,29 +541,95 @@ def run(args):
         if getattr(args, 'detailed_analysis', False):
             analyze_patch_anomalies_detailed(query, pred, patch_scores, DCGAN.d, output_dir='outputs/detailed_analysis')
 
-    # ===== TRAIN ENCODER =====
-    elif args.mode == 'train_encoder':
-        X_train, valid_masks = load.load_raster_data(args.datapath, args.testpath, args.imgsize, 'train')
-
-        # Load already-trained GAN weights
-        g = load_model(
-            '/Users/justin/Desktop/Rast-fAnoGAN/saved_model/generator20260816_224127.h5',
-            custom_objects={'mse': tf.keras.losses.MeanSquaredError()}
-        )
-
-        d = load_model(
-            '/Users/justin/Desktop/Rast-fAnoGAN/saved_model/discriminator20260816_224127.h5',
-            custom_objects={'mse': tf.keras.losses.MeanSquaredError()}
-        )
-
-        print("Loaded existing GAN weights — skipping GAN training.")
-
-        encoder = model.train_encoder(
-            args, g, d, X_train, valid_masks,
-            epochs=500,
-            save_path='./saved_model/'
-        )
-        print("Encoder training complete.")
+        # ===== TRAIN ENCODER =====
+        elif args.mode == 'train_encoder':
+            if not args.datapath:
+                raise ValueError(
+                    "--datapath is required for encoder training"
+                )
+        
+            if not args.generator_path:
+                raise ValueError(
+                    "--generator_path is required for encoder training"
+                )
+        
+            if not args.discriminator_path:
+                raise ValueError(
+                    "--discriminator_path is required for encoder training"
+                )
+        
+            if not os.path.exists(args.generator_path):
+                raise FileNotFoundError(
+                    f"Generator not found: {args.generator_path}"
+                )
+        
+            if not os.path.exists(args.discriminator_path):
+                raise FileNotFoundError(
+                    f"Discriminator not found: {args.discriminator_path}"
+                )
+            print("\n" + "=" * 60)
+            print("TRAINING f-AnoGAN ENCODER")
+            print("=" * 60)
+        
+            # Load training data
+            X_train, valid_masks = load.load_raster_data(
+                args.datapath,
+                args.testpath,
+                args.imgsize,
+                'train'
+            )
+        
+            print(f"Training data shape: {X_train.shape}")
+        
+            # Normalize exactly as used during training
+            X_train = np.clip(X_train, -3, 3) / 3.0
+        
+            # ---------------------------------------------------------
+            # Load already-trained Generator
+            # ---------------------------------------------------------
+            print(f"\nLoading generator:")
+            print(args.generator_path)
+        
+            g = load_model(
+                args.generator_path,
+                custom_objects={
+                    'mse': tf.keras.losses.MeanSquaredError()
+                }
+            )
+        
+            # ---------------------------------------------------------
+            # Load already-trained Discriminator
+            # ---------------------------------------------------------
+            print(f"\nLoading discriminator:")
+            print(args.discriminator_path)
+        
+            d = load_model(
+                args.discriminator_path,
+                custom_objects={
+                    'mse': tf.keras.losses.MeanSquaredError()
+                }
+            )
+        
+            print("\nLoaded existing GAN weights.")
+            print("Skipping GAN training.")
+        
+            # ---------------------------------------------------------
+            # Train encoder
+            # ---------------------------------------------------------
+            print("\nStarting encoder training...")
+        
+            encoder = model.train_encoder(
+                args,
+                g,
+                d,
+                X_train,
+                valid_masks,
+                epochs=args.encoder_epochs,
+                save_path=args.output_dir
+            )
+        
+            print("\nEncoder training complete.")
+            print(f"Encoder saved in: {args.output_dir}")
 
      # ===== TRAIN unmasked ENCODER =====
     elif args.mode == 'train_encoder_unmasked':
@@ -596,6 +662,32 @@ def validate_args(args):
             f"imgsize must be divisible by 4 for current generator architecture. "
             f"Got {args.imgsize}. Try: 4, 8, 12, 16, 20, 24, 28, 32, etc."
         )
+
+    if args.mode == 'train_encoder':
+        if not args.datapath:
+            raise ValueError(
+                "--datapath is required for encoder training"
+            )
+    
+        if not args.generator_path:
+            raise ValueError(
+                "--generator_path is required for encoder training"
+            )
+    
+        if not args.discriminator_path:
+            raise ValueError(
+                "--discriminator_path is required for encoder training"
+            )
+    
+        if not os.path.exists(args.generator_path):
+            raise FileNotFoundError(
+                f"Generator not found: {args.generator_path}"
+            )
+    
+        if not os.path.exists(args.discriminator_path):
+            raise FileNotFoundError(
+                f"Discriminator not found: {args.discriminator_path}"
+            )
 
     # Recommend power-of-2 sizes for best results
     if args.imgsize not in [4, 8, 16, 32, 64, 128]:
@@ -671,6 +763,26 @@ def main(config=None):
                 default='./saved_model',
                 help='Directory for saving trained models and results'
             )
+        parser.add_argument(
+            '--generator_path',
+            type=str,
+            default=None,
+            help='Path to trained f-AnoGAN generator .h5 file'
+        )
+        
+        parser.add_argument(
+            '--discriminator_path',
+            type=str,
+            default=None,
+            help='Path to trained f-AnoGAN discriminator .h5 file'
+        )
+        
+        parser.add_argument(
+            '--encoder_epochs',
+            type=int,
+            default=500,
+            help='Number of epochs for encoder training'
+        )
         parser.add_argument('--datapath', '-d', type=str,
                             help='Path to training data directory (contains .tif patches)')
         parser.add_argument('--testpath', '-p', type=str,
