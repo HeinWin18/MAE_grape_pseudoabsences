@@ -486,17 +486,44 @@ def run(args):
             print(f"Epoch {epoch + 1} complete - Avg D: {avg_d:.4f}, Avg G: {avg_g:.4f} | Time: {epoch_time:.1f}s | ETA: {remaining/60:.1f}min")
             mlflow.log_metric("epoch_time", epoch_time, step=epoch)
 
+            #if (epoch + 1) % 10 == 0 or (epoch + 1) == args.epoch:
+             #   os.makedirs('./saved_model/', exist_ok=True)
+             #   DCGAN.g.save_weights(f'./saved_model/generator_{timestamp}.weights.h5')
+             #   DCGAN.d.save_weights(f'./saved_model/discriminator_{timestamp}.weights.h5')
             if (epoch + 1) % 10 == 0 or (epoch + 1) == args.epoch:
-                os.makedirs('./saved_model/', exist_ok=True)
-                DCGAN.g.save_weights(f'./saved_model/generator_{timestamp}.weights.h5')
-                DCGAN.d.save_weights(f'./saved_model/discriminator_{timestamp}.weights.h5')
+                os.makedirs(args.output_dir, exist_ok=True)
+            
+                DCGAN.g.save_weights(
+                    os.path.join(
+                        args.output_dir,
+                        f'generator_{timestamp}.weights.h5'
+                    )
+                )
+            
+                DCGAN.d.save_weights(
+                    os.path.join(
+                        args.output_dir,
+                        f'discriminator_{timestamp}.weights.h5'
+                    )
+                )
 
         total_time = time.time() - train_start
         mlflow.log_metric("total_train_time_sec", total_time)
         mlflow.log_metric("avg_epoch_time_sec", total_time / args.epoch)
 
-        DCGAN.g.save(f'./saved_model/generator{timestamp}.h5')
-        DCGAN.d.save(f'./saved_model/discriminator{timestamp}.h5')
+        DCGAN.g.save(
+            os.path.join(
+                args.output_dir,
+                f'generator{timestamp}.h5'
+            )
+        )
+        
+        DCGAN.d.save(
+            os.path.join(
+                args.output_dir,
+                f'discriminator{timestamp}.h5'
+            )
+        )
         
         return float(tf.reduce_mean(g_losses[-steps_per_epoch:]))
 
@@ -638,7 +665,12 @@ def main(config=None):
         )
 
         # Data paths
-        
+        parser.add_argument(
+                '--output_dir',
+                type=str,
+                default='./saved_model',
+                help='Directory for saving trained models and results'
+            )
         parser.add_argument('--datapath', '-d', type=str,
                             help='Path to training data directory (contains .tif patches)')
         parser.add_argument('--testpath', '-p', type=str,
