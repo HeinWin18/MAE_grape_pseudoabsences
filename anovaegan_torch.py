@@ -170,8 +170,8 @@ def train(data_folder, out_dir=None):
 
         print(f"EPOCH {epoch+1}: vae_loss={ep_vae/len(loader):.4f}")
 
-        # Save checkpoint every 200 epochs
-        if out_dir is not None and (epoch + 1) % 200 == 0:
+        # Save checkpoint every 100 epochs
+        if out_dir is not None and (epoch + 1) % 100 == 0:
             os.makedirs(out_dir, exist_ok=True)
 
             checkpoint_path = os.path.join(
