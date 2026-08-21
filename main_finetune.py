@@ -21,6 +21,19 @@ import torch
 import torch.backends.cudnn as cudnn
 from torch.utils.tensorboard import SummaryWriter
 
+# Compatibility fix for timm==0.3.2 with modern PyTorch
+import sys
+import types
+import collections.abc
+
+torch_six = types.ModuleType("torch._six")
+torch_six.container_abcs = collections.abc
+torch_six.string_classes = (str,)
+torch_six.int_classes = (int,)
+sys.modules["torch._six"] = torch_six
+
+import timm
+
 import timm
 
 assert timm.__version__ == "0.3.2" # version check
