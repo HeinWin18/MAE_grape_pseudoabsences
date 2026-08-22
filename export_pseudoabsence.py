@@ -87,7 +87,7 @@ def load_clf():
     m = models_vit.vit_base_patch2(num_classes=2, drop_path_rate=0.0,
                                    global_pool=True, img_size=32)
     ck = torch.load(args.clf, map_location="cpu", weights_only=False)
-    print("CLF:", m.load_state_dict(ck["classifier"], strict=False)) #model orginally trained with 2 classes, but we only use the abnormal class (1) for scoring
+    print("CLF:", m.load_state_dict(ck["model"], strict=False)) #model orginally trained with 2 classes, but we only use the abnormal class (1) for scoring
     return m.to(device).eval()
 
 
