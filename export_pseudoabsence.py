@@ -18,6 +18,18 @@ Usage:
     --n 8000 \
     --out   /Users/justin/Desktop/MAE_corn_pseduoabsence/hein_merged_patches_mae_PLAD_32x32.csv
 """
+import sys
+import types
+import collections.abc
+
+# Compatibility fix for timm==0.3.2 with modern PyTorch
+torch_six = types.ModuleType("torch._six")
+torch_six.container_abcs = collections.abc
+torch_six.string_classes = (str,)
+torch_six.int_classes = (int,)
+sys.modules["torch._six"] = torch_six
+
+import timm
 
 import argparse, glob, os
 import numpy as np
